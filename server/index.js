@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { isAllowedOrigin } from './origin.js';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
@@ -19,7 +20,7 @@ app.get('/api/health',(req,res)=>res.json({ok:true,configured:{mongodb:!!process
 const sessionHash=token=>createHash('sha256').update(token).digest('hex');
 const cookieOptions={httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'strict',path:'/',maxAge:7*24*60*60*1000};
 app.use('/api/auth',rateLimit({windowMs:15*60*1000,limit:30,standardHeaders:true,legacyHeaders:false}));
-app.use('/api',(req,res,next)=>{if(!['GET','HEAD','OPTIONS'].includes(req.method)){const origin=req.get('origin');if(origin&&new URL(origin).host!==req.get('host'))return res.status(403).json({error:'Request origin is not allowed.'});}next();});
+app.use('/api',(req,res,next)=>{if(!['GET','HEAD','OPTIONS'].includes(req.method)){const origin=req.get('origin');if(!isAllowedOrigin(origin,{appOrigin:process.env.APP_ORIGIN,production:process.env.NODE_ENV==='production',host:req.get('host'),protocol:req.protocol}))return res.status(403).json({error:'Request origin is not allowed.'});}next();});
 app.post('/api/auth/:mode',async(req,res)=>{
  if(!['signup','login'].includes(req.params.mode))return res.sendStatus(404);
  const {email,password,name}=z.object({email:z.string().email().max(254).transform(s=>s.toLowerCase()),password:z.string().min(8).max(128),name:z.string().trim().min(1).max(80).optional()}).parse(req.body);

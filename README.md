@@ -35,3 +35,7 @@ Generated workshops are educational inspection simulations, not an electrical ph
 A learner can complete guided UI steps without demonstrating physical skill. Assessment scoring is server-side, but step completion is client-reported and is not an anti-cheating guarantee.
 
 `npm test` checks scoring, answer-key hiding, translation shape validation, and generated scenario validation. `npm run build` checks the production bundle.
+
+## Frontend origin and session requests
+
+Frontend requests use relative `/api` URLs and same-origin cookies. Vite proxies them to Express during development. The dev server stays on port 5173 (`strictPort`) so its origin is predictable. Set `APP_ORIGIN` to the browser-facing origin if using a different hostname, network address, or a reverse proxy; for example `https://learn.example.com` in production. Use the exact scheme, hostname, and port, without a path. The default local origins `http://localhost:5173` and `http://127.0.0.1:5173` are accepted only outside production. Restart the API after changing environment variables. This validates browser write requests without enabling cross-origin cookie access or trusting arbitrary forwarded headers.

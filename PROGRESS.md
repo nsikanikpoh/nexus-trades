@@ -67,3 +67,29 @@ A local React/Express application implements the requested screens and integrati
 **New rule:** Every completed task, including documentation-only work, must update this log. Record lasting user-established constraints in both this log and `AGENTS.md`; preserve prior entries and never record secrets or unsupported claims.
 
 **Verification:** Read `package.json` and `README.md` and compared the documentation against the implementation history. Checked both new files for existence and required sections. No application code changed; build/tests were not rerun for this documentation-only task.
+
+## 2026-10-14 — Frontend/backend origin validation fix
+
+**Request:** Make the frontend connect properly to the backend; specifically fix “Request origin is not allowed.”
+
+**Diff summary:** Added `server/origin.js` and wired it into Express write-request validation. Added explicit `APP_ORIGIN` configuration to `.env.example` and documented it in `README.md`. Set Vite to port 5173 with `strictPort` so it cannot silently move to an unaccepted origin. Added `tests/origin.test.js` for dev-proxy, production-proxy, spoofed/malformed origin, scheme/port mismatch, and same-origin cases. Existing private `.env` values were not inspected or changed.
+
+**Decision:** Compare full browser origins against an explicit public origin, with localhost/127.0.0.1 port 5173 defaults only in development. Preserve same-origin hosting when no public origin is configured. Do not disable origin validation or trust arbitrary forwarded headers. No cross-origin credentials/CORS changes are needed because the frontend calls relative `/api` endpoints.
+
+**Verification:** `npm test` passed both domain and origin test files. Actual HTTP requests through Vite's `/api` proxy returned 400 for an empty login body with the valid localhost frontend Origin (input validation reached, rather than origin rejection) and 403 for an unrelated Origin. These checks did not create an account or require database/provider credentials. Production build result recorded below.
+
+**New rules:** No new user-established product rules. Configure `APP_ORIGIN` to the exact browser-facing URL for non-default hosts or production deployments and restart the API after environment changes. Credential-dependent full signup/login and AI flows remain unverified by this fix.
+
+**Build:** `npm run build` passed; only the previously observed non-blocking React Router directive warnings appeared.
+
+## 2026-10-14 — Workshop React runtime fix
+
+**Request:** Fix the workshop crash: `Workshop.jsx:3 Uncaught ReferenceError: React is not defined`.
+
+**Diff summary:** Updated `src/Workshop.jsx` to import the default `React` binding alongside `useEffect` and `useRef`.
+
+**Decision:** Keep the existing classic JSX transform and make the component's import consistent with `src/main.jsx`. The compiled JSX calls `React.createElement`, so named hook imports alone do not provide the required React binding. No dependencies or workshop behaviour changed. No new product rules were established.
+
+**Verification:** `npm test` passed both existing test files. A Vite-transformed runtime render using ReactDOM server rendering passed, including component label and selected-state assertions, without the reported ReferenceError. The temporary Vite test server also emitted a sandbox WebSocket binding warning; it closed successfully and did not prevent the render check. This check does not exercise PixiJS/WebGL effects or the authenticated browser workflow.
+
+**Build:** `npm run build` passed, with the existing non-blocking React Router `use client` directive warnings.
